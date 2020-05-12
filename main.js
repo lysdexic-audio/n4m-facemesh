@@ -4,7 +4,9 @@ function createWindow() {
 	console.log("hello");
 	// Create the browser window.
 	const win = new BrowserWindow({ width: 800, height: 600 });
-	win.webContents.openDevTools();
+	
+	//uncomment for debug console:
+	//win.webContents.openDevTools();
 
 	// and load the html of the app.
 	win.loadFile("./camera.html");
