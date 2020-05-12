@@ -43,8 +43,7 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 761.0, 105.0, 150.0, 21.0 ],
-					"text" : "completed ✓"
+					"patching_rect" : [ 761.0, 105.0, 150.0, 20.0 ]
 				}
 
 			}
@@ -82,7 +81,7 @@
 						}
 ,
 						"classnamespace" : "box",
-						"rect" : [ 319.0, 422.0, 640.0, 480.0 ],
+						"rect" : [ 929.0, 272.0, 640.0, 480.0 ],
 						"bglocked" : 0,
 						"openinpresentation" : 0,
 						"default_fontsize" : 12.0,
@@ -409,8 +408,6 @@
 													"saved_object_attributes" : 													{
 														"autostart" : 0,
 														"defer" : 0,
-														"node_bin_path" : "",
-														"npm_bin_path" : "",
 														"watch" : 0
 													}
 ,
@@ -692,7 +689,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-40",
-					"items" : [ "thumb", ",", "indexFinger", ",", "middleeFinger", ",", "ringFinger", ",", "pinky", ",", "palmBase" ],
+					"items" : [ "silhouette", ",", "lipsUpperOuter", ",", "lipsLowerOuter", ",", "lipsUpperInner", ",", "lipsLowerInner", ",", "rightEyeUpper0", ",", "rightEyeLower0", ",", "rightEyeUpper1", ",", "rightEyeLower1", ",", "rightEyeUpper2", ",", "rightEyeLower2", ",", "rightEyeUpper3", ",", "rightEyeLower3", ",", "rightEyebrowUpper", ",", "rightEyebrowLower", ",", "leftEyeUpper0", ",", "leftEyeLower0", ",", "leftEyeUpper1", ",", "leftEyeLower1", ",", "leftEyeUpper2", ",", "leftEyeLower2", ",", "leftEyeUpper3", ",", "leftEyeLower3", ",", "leftEyebrowUpper", ",", "leftEyebrowLower" ],
 					"maxclass" : "umenu",
 					"numinlets" : 1,
 					"numoutlets" : 3,
@@ -917,8 +914,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 607.0, 540.0, 152.0, 22.0 ],
-					"text" : "get handInViewConfidence"
+					"patching_rect" : [ 607.0, 540.0, 148.0, 22.0 ],
+					"text" : "get faceInViewConfidence"
 				}
 
 			}
@@ -1180,6 +1177,8 @@
 					"saved_object_attributes" : 					{
 						"autostart" : 0,
 						"defer" : 0,
+						"node_bin_path" : "",
+						"npm_bin_path" : "",
 						"watch" : 0
 					}
 ,
