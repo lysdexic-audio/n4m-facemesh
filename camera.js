@@ -33,6 +33,8 @@ tfjsWasm.setWasmPath(
     `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@${
         version.version}/dist/tfjs-backend-wasm.wasm`);
 
+tf.setBackend('wasm').then(() => {bindPage()});
+
 //console.log("version: ", version.version);
 
 //import {TRIANGULATION} from './triangulation'; //syntax?
@@ -314,7 +316,7 @@ const guiState =
 	devices: {
 		videoDevices: []
 	},
-  backend: 'cpu',
+  backend: 'wasm',
   maxFaces: 1,
   triangulateMesh: true,
 	output: {
