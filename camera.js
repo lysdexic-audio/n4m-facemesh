@@ -346,7 +346,7 @@ async function setupGui(cameras, net)
   {
 		const allDevices = await navigator.mediaDevices.enumerateDevices();
 		const matchedDeviceId = allDevices.filter(device => device.label === selectedDevice).map(device => device.deviceId);
-		changeVideoSource(matchedDeviceId);
+    changeVideoSource(matchedDeviceId);
 	});
 
   gui.add(guiState, 'backend', ['wasm', 'webgl', 'cpu'])
@@ -378,72 +378,75 @@ function setupFPS()
 
 function detectFaces(video, net)
 {
-	const canvas = document.getElementById("output");
-	const ctx = canvas.getContext("2d");
-	// since images are being fed from a webcam
-	const flipHorizontal = true;
+  video.addEventListener('loadeddata', function() {
+     // Video is loaded and can be played
+  	const canvas = document.getElementById("output");
+  	const ctx = canvas.getContext("2d");
+  	// since images are being fed from a webcam
+  	const flipHorizontal = true;
 
-	canvas.width = videoWidth;
-	canvas.height = videoHeight;
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
-  ctx.fillStyle = '#32EEDB';
-  ctx.strokeStyle = '#32EEDB';
-  ctx.lineWidth = 0.5;
+  	canvas.width = videoWidth;
+  	canvas.height = videoHeight;
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.fillStyle = '#32EEDB';
+    ctx.strokeStyle = '#32EEDB';
+    ctx.lineWidth = 0.5;
 
-  async function renderPrediction()
-  {
-		// Begin monitoring code for frames per second
-		stats.begin();
-
-		ctx.clearRect(0, 0, videoWidth, videoHeight);
-
-		if (guiState.output.showVideo)
+    async function renderPrediction()
     {
-		  //ctx.save();
-      //ctx.scale(-1, 1);
-      //ctx.translate(-videoWidth, 0);
-			ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-			//ctx.restore();
-		}
+  		// Begin monitoring code for frames per second
+  		stats.begin();
 
-    const predictions = await guiState.net.estimateFaces(video);
+  		ctx.clearRect(0, 0, videoWidth, videoHeight);
 
-    if (predictions.length > 0)
-    {
-      predictions.forEach(prediction => {
-        const keypoints = prediction.scaledMesh;
+  		if (guiState.output.showVideo)
+      {
+  		  //ctx.save();
+        //ctx.scale(-1, 1);
+        //ctx.translate(-videoWidth, 0);
+  			ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+  			//ctx.restore();
+  		}
 
-        if (guiState.triangulateMesh) {
-          for (let i = 0; i < TRIANGULATION.length / 3; i++) {
-            const points = [
-              TRIANGULATION[i * 3], TRIANGULATION[i * 3 + 1],
-              TRIANGULATION[i * 3 + 2]
-            ].map(index => keypoints[index]);
+      const predictions = await guiState.net.estimateFaces(video);
 
-            drawPath(ctx, points, true);
+      if (predictions.length > 0)
+      {
+        predictions.forEach(prediction => {
+          const keypoints = prediction.scaledMesh;
+
+          if (guiState.triangulateMesh) {
+            for (let i = 0; i < TRIANGULATION.length / 3; i++) {
+              const points = [
+                TRIANGULATION[i * 3], TRIANGULATION[i * 3 + 1],
+                TRIANGULATION[i * 3 + 2]
+              ].map(index => keypoints[index]);
+
+              drawPath(ctx, points, true);
+            }
+          } else {
+            for (let i = 0; i < keypoints.length; i++) {
+              const x = keypoints[i][0];
+              const y = keypoints[i][1];
+              ctx.beginPath();
+              ctx.arc(x, y, 1, 0, 2 * Math.PI);
+              ctx.fill();
+            }
           }
-        } else {
-          for (let i = 0; i < keypoints.length; i++) {
-            const x = keypoints[i][0];
-            const y = keypoints[i][1];
-            ctx.beginPath();
-            ctx.arc(x, y, 1, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-        }
-      });
+        });
 
-      //send formatted vals to MaxMSP
-      sendToMaxPatch(predictions[0]);
-    }
+        //send formatted vals to MaxMSP
+        sendToMaxPatch(predictions[0]);
+      }
 
-		stats.end();
+  		stats.end();
 
-		requestAnimationFrame(renderPrediction);
-	}
+  		requestAnimationFrame(renderPrediction);
+  	}
 
-	renderPrediction();
+  	renderPrediction();
+  }, false);
 }
 
 /**
