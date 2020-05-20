@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 56.0, 1143.0, 960.0 ],
+		"rect" : [ 34.0, 56.0, 1143.0, 980.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -38,6 +38,18 @@
 		"style" : "",
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-33",
+					"maxclass" : "button",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "bang" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 824.0, 1058.0, 24.0, 24.0 ]
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"id" : "obj-10",
 					"maxclass" : "comment",
@@ -408,6 +420,8 @@
 													"saved_object_attributes" : 													{
 														"autostart" : 0,
 														"defer" : 0,
+														"node_bin_path" : "",
+														"npm_bin_path" : "",
 														"watch" : 0
 													}
 ,
@@ -669,7 +683,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 786.0, 420.5, 187.0, 55.0 ],
-					"text" : "3. Retrieve positions from Dictionary",
+					"text" : "3. Retrieve annotations positions from Dictionary",
 					"textjustification" : 1
 				}
 
@@ -689,7 +703,7 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-40",
-					"items" : [ "silhouette", ",", "lipsUpperOuter", ",", "lipsLowerOuter", ",", "lipsUpperInner", ",", "lipsLowerInner", ",", "rightEyeUpper0", ",", "rightEyeLower0", ",", "rightEyeUpper1", ",", "rightEyeLower1", ",", "rightEyeUpper2", ",", "rightEyeLower2", ",", "rightEyeUpper3", ",", "rightEyeLower3", ",", "rightEyebrowUpper", ",", "rightEyebrowLower", ",", "leftEyeUpper0", ",", "leftEyeLower0", ",", "leftEyeUpper1", ",", "leftEyeLower1", ",", "leftEyeUpper2", ",", "leftEyeLower2", ",", "leftEyeUpper3", ",", "leftEyeLower3", ",", "leftEyebrowUpper", ",", "leftEyebrowLower" ],
+					"items" : [ "silhouette", ",", "lipsUpperOuter", ",", "lipsLowerOuter", ",", "lipsUpperInner", ",", "lipsLowerInner", ",", "rightEyeUpper0", ",", "rightEyeLower0", ",", "rightEyeUpper1", ",", "rightEyeLower1", ",", "rightEyeUpper2", ",", "rightEyeLower2", ",", "rightEyeUpper3", ",", "rightEyeLower3", ",", "rightEyebrowUpper", ",", "rightEyebrowLower", ",", "leftEyeUpper0", ",", "leftEyeLower0", ",", "leftEyeUpper1", ",", "leftEyeLower1", ",", "leftEyeUpper2", ",", "leftEyeLower2", ",", "leftEyeUpper3", ",", "leftEyeLower3", ",", "leftEyebrowUpper", ",", "leftEyebrowLower", ",", "leftEyeUpper0", ",", "leftEyeLower0", ",", "leftEyeUpper1", ",", "leftEyeLower1", ",", "leftEyeUpper2", ",", "leftEyeLower2", ",", "leftEyeLower3", ",", "leftEyeBrowUpper", ",", "leftEyeBrowLower", ",", "midwayBetweenEyes", ",", "noseTip", ",", "noseBottom", ",", "noseRIghtCorner", ",", "noseLeftCorner", ",", "rightCheek", ",", "leftCheek" ],
 					"maxclass" : "umenu",
 					"numinlets" : 1,
 					"numoutlets" : 3,
@@ -715,7 +729,7 @@
 				"box" : 				{
 					"id" : "obj-38",
 					"maxclass" : "number",
-					"maximum" : 3,
+					"maximum" : 36,
 					"minimum" : 0,
 					"numinlets" : 1,
 					"numoutlets" : 2,
@@ -1177,8 +1191,6 @@
 					"saved_object_attributes" : 					{
 						"autostart" : 0,
 						"defer" : 0,
-						"node_bin_path" : "",
-						"npm_bin_path" : "",
 						"watch" : 0
 					}
 ,
