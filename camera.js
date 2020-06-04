@@ -229,6 +229,40 @@ function sendToMaxPatch(predictions) {
 	socket.emit("dispatch", predictions);
 }
 
+function vector(x,y)
+{
+  this.x = x;
+  this.y = y;
+  //this.z = z;
+}
+
+function vecSub(v1,v2)
+{
+  var subbed = new vector();
+  subbed.x = v1.x - v2.x;
+  subbed.y = v1.y - v2.y;
+  //subbed.z = v1.z - v2.z;
+  return subbed;
+}
+
+function vecLength(v1)
+{
+  //var vecLen = Math.sqrt(Math.pow(v1.x, 2) + Math.pow(v1.y, 2) + Math.pow(v1.z, 2));
+  var vecLen = Math.sqrt( Math.pow(v1.x, 2) + Math.pow(v1.y, 2) );
+  return vecLen;
+}
+
+function processGesture(_array, start, end)
+{
+  //var vec1 = new vector(_array[start][0],_array[start][1],_array[start][2]);
+  var vec1 = new vector(_array[start][0],_array[start][1]);
+  //var vec2 = new vector(_array[end][0],_array[end][1],_array[end][2]);
+  var vec2 = new vector(_array[end][0],_array[end][1]);
+  var sub = vecSub(vec1, vec2);
+  var gestureLength = vecLength(sub);
+  return gestureLength;
+}
+
 //------------------------------------
 
 function drawPath(ctx, points, closePath)
@@ -410,6 +444,7 @@ function detectFaces(video, net)
   		}
 
       const predictions = await guiState.net.estimateFaces(video);
+      let facemeshDict = {};
 
       if (predictions.length > 0)
       {
@@ -434,10 +469,65 @@ function detectFaces(video, net)
               ctx.fill();
             }
           }
+
+          const annotations = prediction.annotations;
+
+          facemeshDict["faceInViewConfidence"] = prediction.faceInViewConfidence;
+          facemeshDict["boundingBox"] = prediction.boundingBox;
+
+          //facemeshDict["mesh"] = {};
+          //prediction.mesh.forEach(([value1, value2, value3], idx) => facemeshDict["mesh"][idx] = [value1, value2, value3]);
+
+          //facemeshDict["scaledMesh"] = {};
+          //prediction.scaledMesh.forEach(([value1, value2, value3], idx) => facemeshDict["scaledMesh"][idx] = [value1, value2, value3]);
+
+          facemeshDict["annotations"] = {};
+
+          for (var key in annotations)
+          {
+            // check if the property/key is defined in the object itself, not in parent
+            if (annotations.hasOwnProperty(key))
+            {
+              facemeshDict["annotations"][key] = {};
+              annotations[key].forEach(([value1, value2, value3], idx) => facemeshDict["annotations"][key][idx] = [value1, value2, value3]);
+            }
+          }
+
+          //facemeshDict["scaledMeshList"] = [];
+          //prediction.scaledMesh.forEach(([value1, value2, value3]) => facemeshDict["scaledMeshList"].push(value1, value2));
+
+          facemeshDict["gestures"] = {};
+          /// left to right of mouth
+          var mouthWidth = processGesture(prediction.mesh, 78, 308);
+          facemeshDict["gestures"]["mouthWidth"] = [mouthWidth];
+          // top to bottom of inner mouth
+          var mouthHeight = processGesture(prediction.mesh, 13, 14);
+          facemeshDict["gestures"]["mouthHeight"] = [mouthHeight];
+          // center of the eye to middle of eyebrow
+          var leftEyeBrow = processGesture(prediction.mesh, 159, 105);
+          facemeshDict["gestures"]["leftEyeBrow"] = [leftEyeBrow];
+          // center of the eye to middle of eyebrow
+          var rightEyeBrow = processGesture(prediction.mesh, 386, 334);
+          facemeshDict["gestures"]["rightEyeBrow"] = [rightEyeBrow];
+          // upper inner eye to lower outer eye~
+          var rightEye = processGesture(prediction.mesh, 386, 374);
+          facemeshDict["gestures"]["rightEye"] = [rightEye];
+          // upper inner eye to lower outer eye~
+          var leftEye = processGesture(prediction.mesh, 159, 145);
+          facemeshDict["gestures"]["leftEye"] = [leftEye];
+          // nose center to chin center~
+          var jawOpenness = processGesture(prediction.mesh, 1, 200);
+          facemeshDict["gestures"]["jawOpenness"] = [jawOpenness];
+          // left side of nose to right side of nose~
+          var nostrilFlare = processGesture(prediction.mesh, 64, 294);
+          facemeshDict["gestures"]["nostrilFlare"] = [nostrilFlare];
+
         });
 
+
         //send formatted vals to MaxMSP
-        sendToMaxPatch(predictions[0]);
+        //sendToMaxPatch(predictions[0]);
+        sendToMaxPatch(facemeshDict);
       }
 
   		stats.end();
