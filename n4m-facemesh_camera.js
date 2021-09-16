@@ -16,6 +16,8 @@
  */
 const SocketIOClient = require("socket.io-client");
 const io = new SocketIOClient("http://localhost:3000");
+statsShow = true;
+
 const socket = io.connect();
 socket.on("connect", () => {
 	console.log("Connected to Max 8");
@@ -209,9 +211,70 @@ const TRIANGULATION = [
     453, 465, 343, 357, 412, 437, 343, 399, 344, 360, 440, 420, 437, 456, 360,
     420, 363, 361, 401, 288, 265, 372, 353, 390, 339, 249, 339, 448, 255];
 
-const videoWidth = 500;
+const Store = require('electron-store');
+
+const schema = {
+  storemaxContinuousChecks: {
+    type: 'number',
+    maximum: 960,
+    minimum: 1,
+    default: 5
+  },
+  storedetectionConfidence: {
+    type: 'number',
+    maximum: 1.0,
+    minimum: 0.2,
+    default: 0.9
+  },
+  storeiouThreshold: {
+    type: 'number',
+    maximum: 1.0,
+    minimum: 0.2,
+    default: 0.3
+  },
+  storescoreThreshold: {
+    type: 'number',
+    maximum: 1.0,
+    minimum: 0.2,
+    default: 0.75
+  },
+  storetriangulateMesh: {
+    type: 'boolean',
+    default: true
+  },
+  storemaxFaces: {
+    type: 'number',
+    maximum: 10,
+    minimum: 1,
+    default: 1
+  },
+  storeBackend: {
+    type: 'string',
+    default: 'wasm'
+  },
+  storehand_fillColour: {
+    type: 'string',
+    default: "#32EEDB"
+  },
+  storehand_strokeColour: {
+    type: 'string',
+    default: "#32EEDB"
+  },
+};
+
+const store = new Store({schema});
+var palette =
+{
+  fillColour: store.get("storehand_fillColour"), // CSS string
+  strokeColour: store.get("storehand_strokeColour") // CSS string
+};
+
+const videoWidth = 600;
 const videoHeight = 500;
 const stats = new Stats();
+
+var _fillColour = store.get("storehand_fillColour");
+var _strokeColour = store.get("storehand_strokeColour");
 
 function isAndroid() {
 	return /Android/i.test(navigator.userAgent);
@@ -229,11 +292,48 @@ function sendToMaxPatch(predictions) {
 	socket.emit("dispatch", predictions);
 }
 
-function vector(x,y)
+var vector = function()
 {
-  this.x = x;
-  this.y = y;
-  //this.z = z;
+  this.x = arguments[0];
+  this.y = arguments[1];
+  this.z = arguments[2];
+};
+
+// function vecSub(v1,v2)
+// {
+//   var subbed = new vector();
+//   subbed.x = v1.x - v2.x;
+//   subbed.y = v1.y - v2.y;
+//   //subbed.z = v1.z - v2.z;
+//   return subbed;
+// }
+
+// function vecLength(v1)
+// {
+//   //var vecLen = Math.sqrt(Math.pow(v1.x, 2) + Math.pow(v1.y, 2) + Math.pow(v1.z, 2));
+//   var vecLen = Math.sqrt( Math.pow(v1.x, 2) + Math.pow(v1.y, 2) );
+//   return vecLen;
+// }
+
+// function processGesture(_array, start, end)
+// {
+//   //var vec1 = new vector(_array[start][0],_array[start][1],_array[start][2]);
+//   var vec1 = new vector(_array[start][0],_array[start][1]);
+//   //var vec2 = new vector(_array[end][0],_array[end][1],_array[end][2]);
+//   var vec2 = new vector(_array[end][0],_array[end][1]);
+//   var sub = vecSub(vec1, vec2);
+//   var gestureLength = vecLength(sub);
+//   return gestureLength;
+// }
+
+//------------------------------------
+
+vector.prototype.normalize = function()
+{
+    var length = Math.sqrt( Math.pow(this.x, 2) + Math.pow(this.y, 2) + Math.pow(this.z, 2));
+    this.x = this.x/length;
+    this.y = this.y/length;
+    this.z = this.z/length;
 }
 
 function vecSub(v1,v2)
@@ -241,32 +341,80 @@ function vecSub(v1,v2)
   var subbed = new vector();
   subbed.x = v1.x - v2.x;
   subbed.y = v1.y - v2.y;
-  //subbed.z = v1.z - v2.z;
+  subbed.z = v1.z - v2.z;
   return subbed;
+}
+
+function vecAdd(v1,v2)
+{
+  var added = new vector();
+  added.x = v1.x + v2.x;
+  added.y = v1.y + v2.y;
+  added.z = v1.z + v2.z;
+  return added;
+}
+
+function vecDivide(v1,n)
+{
+  var divided = new vector();
+  divided.x = v1.x / n;
+  divided.y = v1.y / n;
+  divided.z = v1.z / n;
+  return divided;
 }
 
 function vecLength(v1)
 {
   //var vecLen = Math.sqrt(Math.pow(v1.x, 2) + Math.pow(v1.y, 2) + Math.pow(v1.z, 2));
-  var vecLen = Math.sqrt( Math.pow(v1.x, 2) + Math.pow(v1.y, 2) );
+  let vecLen = Math.sqrt( Math.pow(v1.x, 2) + Math.pow(v1.y, 2) + Math.pow(v1.z, 2) );
   return vecLen;
+}
+
+function vecCross(v1, v2)
+{
+  let cross1 = (v1.y * v2.z - v1.z * v2.y);
+  let cross2 = (v1.z * v2.x - v1.x * v2.z);
+  let cross3 = (v1.x * v2.y - v1.y * v2.x);
+  var cross = new vector(cross1, cross2, cross3);
+  //norm = Math.sqrt(Math.pow(cross[0], 2) + Math.pow(cross[1], 2) + Math.pow(cross[2], 2));
+  //return [cross[0] / norm, cross[1] / norm, cross[2] / norm];
+  return cross;
 }
 
 function processGesture(_array, start, end)
 {
-  //var vec1 = new vector(_array[start][0],_array[start][1],_array[start][2]);
-  var vec1 = new vector(_array[start][0],_array[start][1]);
-  //var vec2 = new vector(_array[end][0],_array[end][1],_array[end][2]);
-  var vec2 = new vector(_array[end][0],_array[end][1]);
+  var vec1 = new vector(..._array[start]);
+  var vec2 = new vector(..._array[end]);
+
   var sub = vecSub(vec1, vec2);
   var gestureLength = vecLength(sub);
   return gestureLength;
+}
+
+function getOrientation(v1, v2, v3)
+{
+  var vec1 = vecSub(v2, v1);
+  var vec2 = vecSub(v3, v1);
+  var unitZ = vecCross(vec1, vec2);
+  unitZ.normalize();
+  var unitX = vecSub(vecDivide(vecAdd(v1,v2), 2),v3);
+  unitX.normalize();
+  var unitY = vecCross(unitZ, unitX);
+
+  var pitch = Math.atan2(-unitZ.y, unitZ.z);
+  pitch /= Math.PI;
+  var yaw = Math.asin(unitZ.x);
+  var roll = Math.atan2(unitY.x, unitX.x);
+
+  return { pitch, yaw, roll };
 }
 
 //------------------------------------
 
 function drawPath(ctx, points, closePath)
 {
+  ctx.fillStyle = _fillColour;
+  ctx.strokeStyle = _strokeColour;
   const region = new Path2D();
   region.moveTo(points[0][0], points[0][1]);
   for (let i = 1; i < points.length; i++) {
@@ -350,11 +498,19 @@ const guiState =
 	devices: {
 		videoDevices: []
 	},
-  backend: 'wasm',
-  maxFaces: 1,
-  triangulateMesh: true,
+  backend: store.get("storeBackend"),
+  input: {
+    maxFaces: store.get("storemaxFaces"),
+    maxContinuousChecks: store.get("storemaxContinuousChecks"),
+    detectionConfidence: store.get("storedetectionConfidence"),
+    iouThreshold: store.get("storeiouThreshold"),
+    scoreThreshold: store.get("storescoreThreshold")
+  },
 	output: {
-		showVideo: true,
+    showBoundingBox: true,
+    showVideo: true,
+    drawPoints: true,
+    triangulateMesh: store.get("storetriangulateMesh")
 	},
 	net: null
 };
@@ -385,17 +541,66 @@ async function setupGui(cameras, net)
 
   gui.add(guiState, 'backend', ['wasm', 'webgl', 'cpu'])
     .onChange(async backend => {
+      store.set("storeBackend", backend);
       await tf.setBackend(backend);
     });
 
-  gui.add(guiState, 'maxFaces', 1, 20, 1).onChange(async val => {
+  let input = gui.addFolder("Input");
+
+  input.add(guiState.input, 'maxFaces').min(1).max(10).onChange(async val => {
+    store.set("storemaxFaces", val);
     guiState.net = await facemesh.load({maxFaces: val});
   });
 
-  gui.add(guiState, 'triangulateMesh');
+  // Params from https://github.com/tensorflow/tfjs-models/tree/master/handpose
+  // - maxContinuousChecks
+  // - How many frames to go without running the bounding box detector. Defaults to infinity.
+  // - Set to a lower value if you want a safety net in case the mesh detector produces consistently flawed predictions.
+  input.add(guiState.input, "maxContinuousChecks", [60, 120, 240, 480, 960]).onChange(async val => {
+    //guiState.net.dispose();
+    store.set("storemaxContinuousChecks", Number(val));
+    guiState.net = await handpose.load({maxContinuousChecks: Number(val)});
+  });
+  // - detectionConfidence
+  // - Threshold for discarding a prediction. Defaults to 0.8.
+  input.add(guiState.input, "detectionConfidence").min(0.2).max(1.0).onChange(async val => {
+    //guiState.net.dispose();
+    store.set("storedetectionConfidence", val);
+    guiState.net = await handpose.load({detectionConfidence: val});
+  });
+  // - iouThreshold
+  // - A float representing the threshold for deciding whether boxes overlap too much in non-maximum suppression.
+  // - Must be between [0, 1]. Defaults to 0.3.
+  input.add(guiState.input, "iouThreshold").min(0.2).max(1.0).onChange(async val => {
+    //guiState.net.dispose();
+    store.set("storeiouThreshold", val);
+    guiState.net = await handpose.load({iouThreshold: val});
+  });
+  // - scoreThreshold
+  // - A threshold for deciding when to remove boxes based on score in non-maximum suppression. Defaults to 0.75.
+  input.add(guiState.input, "scoreThreshold").min(0.2).max(1.0).onChange(async val => {
+    //guiState.net.dispose();
+    store.set("storescoreThreshold", val);
+    guiState.net = await handpose.load({scoreThreshold: val});
+  });
+  input.close();
 
 	let output = gui.addFolder("Output");
 	output.add(guiState.output, "showVideo");
+  output.add(guiState.output, "showBoundingBox");
+  output.add(guiState.output, "drawPoints");
+  output.add(guiState.output, 'triangulateMesh').onChange(async val => {
+    //guiState.net.dispose();
+    store.set("storetriangulateMesh", val);
+  });
+  output.addColor(palette, 'fillColour').onChange(async val => {
+    _fillColour = val;
+    store.set("storehand_fillColour", val);
+  });
+  output.addColor(palette, 'strokeColour').onChange(async val => {
+    _strokeColour = val;
+    store.set("storehand_strokeColour", val);
+  });
 	output.open();
 
 }
@@ -423,14 +628,12 @@ function detectFaces(video, net)
   	canvas.height = videoHeight;
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
-    ctx.fillStyle = '#32EEDB';
-    ctx.strokeStyle = '#32EEDB';
     ctx.lineWidth = 0.5;
 
     async function renderPrediction()
     {
   		// Begin monitoring code for frames per second
-  		stats.begin();
+  		if (statsShow) stats.begin();
 
   		ctx.clearRect(0, 0, videoWidth, videoHeight);
 
@@ -451,20 +654,23 @@ function detectFaces(video, net)
         predictions.forEach(prediction => {
           const keypoints = prediction.scaledMesh;
 
-          if (guiState.triangulateMesh) {
+          if (guiState.output.triangulateMesh) {
             for (let i = 0; i < TRIANGULATION.length / 3; i++) {
               const points = [
                 TRIANGULATION[i * 3], TRIANGULATION[i * 3 + 1],
                 TRIANGULATION[i * 3 + 2]
               ].map(index => keypoints[index]);
-
               drawPath(ctx, points, true);
             }
-          } else {
+          }
+
+          if (guiState.output.drawPoints) {
             for (let i = 0; i < keypoints.length; i++) {
               const x = keypoints[i][0];
               const y = keypoints[i][1];
               ctx.beginPath();
+              ctx.fillStyle = _fillColour;
+              ctx.strokeStyle = _strokeColour;
               ctx.arc(x, y, 1, 0, 2 * Math.PI);
               ctx.fill();
             }
@@ -474,10 +680,16 @@ function detectFaces(video, net)
 
           facemeshDict["faceInViewConfidence"] = prediction.faceInViewConfidence;
           facemeshDict["boundingBox"] = prediction.boundingBox;
+          if (guiState.output.showBoundingBox) {
+            ctx.beginPath();
+            ctx.rect(prediction.boundingBox.topLeft[0][0], prediction.boundingBox.topLeft[0][1], (prediction.boundingBox.bottomRight[0][0] - prediction.boundingBox.topLeft[0][0]), (prediction.boundingBox.bottomRight[0][1] - prediction.boundingBox.topLeft[0][1]) );
+            ctx.stroke();
+          }
 
           //facemeshDict["mesh"] = {};
           //prediction.mesh.forEach(([value1, value2, value3], idx) => facemeshDict["mesh"][idx] = [value1, value2, value3]);
 
+          facemeshDict["scaledMesh"] = { keypoints };
           //facemeshDict["scaledMesh"] = {};
           //prediction.scaledMesh.forEach(([value1, value2, value3], idx) => facemeshDict["scaledMesh"][idx] = [value1, value2, value3]);
 
@@ -493,33 +705,70 @@ function detectFaces(video, net)
             }
           }
 
-          //facemeshDict["scaledMeshList"] = [];
-          //prediction.scaledMesh.forEach(([value1, value2, value3]) => facemeshDict["scaledMeshList"].push(value1, value2));
+          facemeshDict["rawPoints"] = [];
+          prediction.scaledMesh.forEach(([value1, value2, value3]) => facemeshDict["rawPoints"].push(value1, value2, value3));
+
+
+          const leftCheek = annotations["leftCheek"][0];
+          const rightCheek = annotations["rightCheek"][0];
+          const chin = prediction.scaledMesh[200];
+          const noseTip = prediction.scaledMesh[4];
+
+          facemeshDict["pose"] = {};
+          var position = [ ((prediction.boundingBox.topLeft[0][0] + prediction.boundingBox.bottomRight[0][0]) / 2), ((prediction.boundingBox.topLeft[0][1] + prediction.boundingBox.bottomRight[0][1]) / 2) ];
+          //facemeshDict["pose"] = { position };
+          ctx.beginPath();
+          ctx.fillStyle = _fillColour;
+          ctx.strokeStyle = _strokeColour;
+          ctx.arc(position[0], position[1], 1, 0, 2 * Math.PI);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(leftCheek[0], leftCheek[1], 2, 0, 2 * Math.PI);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(rightCheek[0], rightCheek[1], 2, 0, 2 * Math.PI);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(chin[0], chin[1], 2, 0, 2 * Math.PI);
+          ctx.fill();
+
+
+          var scale = processGesture(prediction.scaledMesh, 10, 152);
+          var p1 = new vector(...chin);
+          var p2 = new vector(...leftCheek);
+          var p3 = new vector(...rightCheek);
+
+          var orientation = getOrientation(p1, p2, p3);
+
+          facemeshDict["pose"] = { position, scale, orientation };
 
           facemeshDict["gestures"] = {};
           /// left to right of mouth
-          var mouthWidth = processGesture(prediction.mesh, 78, 308);
+          var mouthWidth = processGesture(prediction.scaledMesh, 78, 308) / scale;
           facemeshDict["gestures"]["mouthWidth"] = [mouthWidth];
           // top to bottom of inner mouth
-          var mouthHeight = processGesture(prediction.mesh, 13, 14);
+          var mouthHeight = processGesture(prediction.scaledMesh, 13, 14) / scale;
           facemeshDict["gestures"]["mouthHeight"] = [mouthHeight];
           // center of the eye to middle of eyebrow
-          var leftEyeBrow = processGesture(prediction.mesh, 159, 105);
+          var leftEyeBrow = processGesture(prediction.scaledMesh, 159, 105) / scale;
           facemeshDict["gestures"]["leftEyeBrow"] = [leftEyeBrow];
           // center of the eye to middle of eyebrow
-          var rightEyeBrow = processGesture(prediction.mesh, 386, 334);
+          var rightEyeBrow = processGesture(prediction.scaledMesh, 386, 334) / scale;
           facemeshDict["gestures"]["rightEyeBrow"] = [rightEyeBrow];
           // upper inner eye to lower outer eye~
-          var rightEye = processGesture(prediction.mesh, 386, 374);
+          var rightEye = processGesture(prediction.scaledMesh, 386, 374) / scale;
           facemeshDict["gestures"]["rightEye"] = [rightEye];
           // upper inner eye to lower outer eye~
-          var leftEye = processGesture(prediction.mesh, 159, 145);
+          var leftEye = processGesture(prediction.scaledMesh, 159, 145) / scale;
           facemeshDict["gestures"]["leftEye"] = [leftEye];
           // nose center to chin center~
-          var jawOpenness = processGesture(prediction.mesh, 1, 200);
+          var jawOpenness = processGesture(prediction.scaledMesh, 1, 200) / scale;
           facemeshDict["gestures"]["jawOpenness"] = [jawOpenness];
           // left side of nose to right side of nose~
-          var nostrilFlare = processGesture(prediction.mesh, 64, 294);
+          var nostrilFlare = processGesture(prediction.scaledMesh, 64, 294) / scale;
           facemeshDict["gestures"]["nostrilFlare"] = [nostrilFlare];
 
         });
@@ -530,7 +779,7 @@ function detectFaces(video, net)
         sendToMaxPatch(facemeshDict);
       }
 
-  		stats.end();
+  		if (statsShow) stats.end();
 
   		requestAnimationFrame(renderPrediction);
   	}
@@ -564,7 +813,7 @@ async function bindPage()
 	}
 
 	setupGui([], net);
-	setupFPS();
+	if (statsShow) setupFPS();
   detectFaces(video, net);
 }
 
